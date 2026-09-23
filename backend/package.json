@@ -1,0 +1,29 @@
+﻿{
+  "name": "campushub-backend",
+  "version": "2.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "migrate": "node scripts/migrate.js",
+    "seed:users": "node scripts/seedUsers.js",
+    "seed:buses": "node scripts/seedBuses.js",
+    "seed:clubs": "node scripts/seedClubs.js",
+    "export:audit": "node scripts/exportAudit.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
