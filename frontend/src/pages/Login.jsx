@@ -146,14 +146,15 @@ export default function Login() {
           </Field>
 
           {mode === 'login' && (
-            <p className="small" style={{ textAlign: 'right', marginTop: -8, marginBottom: 18 }}>
-              <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '2px 4px' }} onClick={() => setShowForgot(true)}>
+            <div style={{ textAlign: 'right', marginBottom: 18 }}>
+              <button type="button" onClick={() => setShowForgot(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 13, cursor: 'pointer', padding: 0 }}>
                 Forgot password?
               </button>
-            </p>
+            </div>
           )}
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 6 }} disabled={busy}>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={busy}>
             {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
 
@@ -176,12 +177,15 @@ function ForgotPasswordModal({ slug, onClose }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
   const submit = async (e) => {
-    e.preventDefault(); setBusy(true);
+    e.preventDefault(); setBusy(true); setError('');
     try {
       await api.post('/auth/forgot-password', { institutionSlug: slug, email });
       setSent(true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Something went wrong.');
     } finally { setBusy(false); }
   };
 
@@ -190,6 +194,7 @@ function ForgotPasswordModal({ slug, onClose }) {
       {!sent ? (
         <form onSubmit={submit}>
           <p className="small" style={{ marginBottom: 16 }}>Enter your institution email and we'll send you a reset link.</p>
+          {error && <div className="banner banner-err">{error}</div>}
           <Field label="Email"><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
