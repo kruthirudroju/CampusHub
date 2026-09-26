@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "campushub-backend",
   "version": "2.0.0",
   "private": true,
@@ -10,7 +10,8 @@
     "seed:users": "node scripts/seedUsers.js",
     "seed:buses": "node scripts/seedBuses.js",
     "seed:clubs": "node scripts/seedClubs.js",
-    "export:audit": "node scripts/exportAudit.js"
+    "export:audit": "node scripts/exportAudit.js",
+    "migrate:reset": "node scripts/migratePasswordReset.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -21,7 +22,8 @@
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.11.0"
+    "mysql2": "^3.11.0",
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

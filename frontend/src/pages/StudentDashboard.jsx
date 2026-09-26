@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { Chip, Empty, Loading, Modal, Field, formatDate } from '../components/ui';
-import { IconUsers, IconMessage, IconWrench, IconCalendar, IconClub, IconBus, IconFlag, IconChat } from '../components/icons';
+import { IconHome, IconUsers, IconMessage, IconWrench, IconCalendar, IconClub, IconBus, IconFlag, IconChat } from '../components/icons';
 
 const SECTIONS = [
+  { items: [{ key: 'home', label: 'Home', icon: IconHome }] },
   { label: 'Campus', items: [
     { key: 'faculty', label: 'Faculty', icon: IconUsers },
     { key: 'messages', label: 'My queries', icon: IconMessage },
@@ -23,14 +24,15 @@ const SECTIONS = [
 ];
 
 const TITLES = {
-  faculty: 'Faculty availability', messages: 'My queries', maintenance: 'Maintenance',
+  home: 'Home', faculty: 'Faculty availability', messages: 'My queries', maintenance: 'Maintenance',
   events: 'Campus events', clubs: 'Clubs', buses: 'Transport', lostfound: 'Lost & found', feedback: 'Feedback'
 };
 
 export default function StudentDashboard() {
-  const [tab, setTab] = useState('faculty');
+  const [tab, setTab] = useState('home');
   return (
     <Layout sections={SECTIONS} active={tab} onNavChange={setTab} pageTitle={TITLES[tab]}>
+      {tab === 'home' && <HomeTab onNavigate={setTab} />}
       {tab === 'faculty' && <FacultyTab />}
       {tab === 'messages' && <MessagesTab />}
       {tab === 'maintenance' && <MaintenanceTab />}
@@ -40,6 +42,68 @@ export default function StudentDashboard() {
       {tab === 'lostfound' && <LostFoundTab />}
       {tab === 'feedback' && <FeedbackTab />}
     </Layout>
+  );
+}
+
+function HomeTab({ onNavigate }) {
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/messages/sent'),
+      api.get('/maintenance/mine'),
+      api.get('/events', { params: { scope: 'upcoming' } }),
+      api.get('/clubs')
+    ]).then(([messages, maintenance, events, clubs]) => {
+      setStats({
+        pendingQueries: messages.data.filter((m) => m.status !== 'Answered').length,
+        openRequests: maintenance.data.filter((r) => r.status !== 'Completed' && r.status !== 'Rejected').length,
+        registeredEvents: events.data.filter((e) => e.is_registered).length,
+        joinedClubs: clubs.data.filter((c) => c.is_member).length
+      });
+    }).catch(() => setStats({ pendingQueries: 0, openRequests: 0, registeredEvents: 0, joinedClubs: 0 }));
+  }, []);
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  return (
+    <div>
+      <h2 style={{ marginBottom: 4 }}>{greeting}, {user?.name?.split(' ')[0]}</h2>
+      <p className="muted" style={{ marginBottom: 26 }}>Here's what's happening across campus.</p>
+
+      {!stats ? <Loading what="Loading your summary" /> : (
+        <div className="stat-grid" style={{ marginBottom: 30 }}>
+          <button className="stat" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('messages')}>
+            <div className="n">{stats.pendingQueries}</div>
+            <div className="l">Queries awaiting reply</div>
+          </button>
+          <button className="stat" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('maintenance')}>
+            <div className="n">{stats.openRequests}</div>
+            <div className="l">Open maintenance reports</div>
+          </button>
+          <button className="stat" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('events')}>
+            <div className="n">{stats.registeredEvents}</div>
+            <div className="l">Events you're registered for</div>
+          </button>
+          <button className="stat" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('clubs')}>
+            <div className="n">{stats.joinedClubs}</div>
+            <div className="l">Clubs you've joined</div>
+          </button>
+        </div>
+      )}
+
+      <div className="card">
+        <h4 style={{ marginBottom: 14 }}>Quick actions</h4>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('faculty')}>Ask a faculty member</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('maintenance')}>Report an issue</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('buses')}>Check bus routes</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('lostfound')}>Lost & found</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

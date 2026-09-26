@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { Field } from '../components/ui';
+import { Field, Modal } from '../components/ui';
 
 const ROLE_META = {
   student: { label: 'Student', idLabel: 'Institution email', idPlaceholder: (d) => d ? `you@${d}` : 'you@college.edu' },
@@ -23,6 +23,7 @@ export default function Login() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   useEffect(() => {
     api.get(`/institutions/${slug}`).then((res) => setInstitution(res.data)).catch(() => setLoadFailed(true));
@@ -39,13 +40,9 @@ export default function Login() {
       if (mode === 'login') {
         const res = await api.post('/auth/login', { institutionSlug: slug, email: form.email, password: form.password });
         const actualRole = res.data.user.role;
-
         if (actualRole !== accountType) {
-          // Let them in regardless -- the account type selector is a convenience,
-          // not a gate -- but tell them so the mismatch isn't confusing.
           setNotice(`Signed in as ${ROLE_META[actualRole]?.label || actualRole} (your account's actual role).`);
         }
-
         const u = { ...res.data.user, institutionName: institution?.name, institutionSlug: slug };
         login(res.data.token, u);
         navigate(actualRole === 'student' ? '/student' : actualRole === 'faculty' ? '/faculty' : '/admin', { replace: true });
@@ -75,7 +72,6 @@ export default function Login() {
 
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexWrap: 'wrap' }}>
-      {/* Left panel */}
       <div style={{
         flex: '1 1 380px', background: 'var(--ink)', color: '#DCE3F5',
         padding: 'calc(48px + env(safe-area-inset-top,0px)) 40px 48px',
@@ -102,7 +98,6 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Right panel: form */}
       <div style={{ flex: '1 1 420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
         <form onSubmit={submit} style={{ width: '100%', maxWidth: 380 }}>
           <h2 style={{ marginBottom: 4 }}>{mode === 'login' ? 'Sign in' : 'Create an account'}</h2>
@@ -150,6 +145,14 @@ export default function Login() {
             {mode === 'signup' && <p className="muted small" style={{ marginTop: 6 }}>At least 8 characters, with a letter and a number.</p>}
           </Field>
 
+          {mode === 'login' && (
+            <p className="small" style={{ textAlign: 'right', marginTop: -8, marginBottom: 18 }}>
+              <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '2px 4px' }} onClick={() => setShowForgot(true)}>
+                Forgot password?
+              </button>
+            </p>
+          )}
+
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 6 }} disabled={busy}>
             {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
@@ -163,6 +166,44 @@ export default function Login() {
           </p>
         </form>
       </div>
+
+      {showForgot && <ForgotPasswordModal slug={slug} onClose={() => setShowForgot(false)} />}
     </div>
+  );
+}
+
+function ForgotPasswordModal({ slug, onClose }) {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault(); setBusy(true);
+    try {
+      await api.post('/auth/forgot-password', { institutionSlug: slug, email });
+      setSent(true);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal title="Reset your password" onClose={onClose}>
+      {!sent ? (
+        <form onSubmit={submit}>
+          <p className="small" style={{ marginBottom: 16 }}>Enter your institution email and we'll send you a reset link.</p>
+          <Field label="Email"><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Sending…' : 'Send reset link'}</button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <div className="banner banner-ok">If that email is registered, a reset link is on its way.</div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button className="btn btn-secondary" onClick={onClose}>Close</button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }

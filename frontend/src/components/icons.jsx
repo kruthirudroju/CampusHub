@@ -1,4 +1,3 @@
-/** Minimal inline-SVG icon set -- no external icon library dependency. */
 const base = { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
   strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
 
@@ -21,3 +20,4 @@ export const IconLock = (p) => (<svg {...base} {...p}><rect x="3" y="11" width="
 export const IconLogOut = (p) => (<svg {...base} {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>);
 export const IconMenu = (p) => (<svg {...base} {...p}><path d="M3 12h18M3 6h18M3 18h18"/></svg>);
 export const IconX = (p) => (<svg {...base} {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>);
+export const IconHome = (p) => (<svg {...base} {...p}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>);

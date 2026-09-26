@@ -210,3 +210,106 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: 'Could not update the password' });
   }
 };
+
+/* ------------------------------------------------------------------
+   Password reset via emailed link (does not require the old password)
+   ------------------------------------------------------------------ */
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../utils/mailer');
+
+const RESET_TOKEN_MINUTES = 30;
+
+/** POST /api/auth/forgot-password  { institutionSlug, email } */
+exports.forgotPassword = async (req, res) => {
+  // Always return the same generic response, whether or not the email
+  // exists -- this endpoint must not reveal which emails are registered.
+  const generic = { message: 'If that email is registered, a reset link has been sent.' };
+
+  try {
+    const { institutionSlug, email } = req.body;
+    if (!institutionSlug || !email) return res.status(400).json(generic);
+
+    const [insts] = await pool.query('SELECT id, name FROM institutions WHERE slug = ? AND is_active = 1', [institutionSlug]);
+    if (insts.length === 0) return res.json(generic);
+    const institution = insts[0];
+
+    const emailLower = String(email).trim().toLowerCase();
+    const [users] = await pool.query(
+      'SELECT id, name, email FROM users WHERE institution_id = ? AND email = ? AND is_active = 1',
+      [institution.id, emailLower]
+    );
+    if (users.length === 0) return res.json(generic);
+    const user = users[0];
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_MINUTES * 60000);
+
+    await pool.query(
+      'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?,?,?)',
+      [user.id, tokenHash, expiresAt]
+    );
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${institutionSlug}/${rawToken}`;
+
+    await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl, institutionName: institution.name });
+
+    await recordAudit(req, {
+      action: 'CREATE', entityType: 'password_reset_request', entityId: user.id,
+      summary: `Password reset requested for ${user.email}`,
+      institutionId: institution.id, actor: { id: user.id, name: user.name, role: null }
+    });
+
+    res.json(generic);
+  } catch (err) {
+    console.error('[forgotPassword]', err.message);
+    // Still generic to the client -- but we log the real error server-side
+    // (e.g. SMTP not configured) so it's fixable without leaking to users.
+    res.json(generic);
+  }
+};
+
+/** POST /api/auth/reset-password  { institutionSlug, token, newPassword } */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { institutionSlug, token, newPassword } = req.body;
+    if (!institutionSlug || !token || !newPassword) {
+      return res.status(400).json({ message: 'token and newPassword are required' });
+    }
+    if (!isStrong(newPassword)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters and include a letter and a number' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const [rows] = await pool.query(
+      `SELECT prt.id AS token_id, prt.expires_at, prt.used_at, u.id AS user_id, u.name, u.email, u.institution_id
+       FROM password_reset_tokens prt
+       JOIN users u ON prt.user_id = u.id
+       JOIN institutions i ON u.institution_id = i.id
+       WHERE prt.token_hash = ? AND i.slug = ?`,
+      [tokenHash, institutionSlug]
+    );
+
+    if (rows.length === 0) return res.status(400).json({ message: 'This reset link is invalid.' });
+    const row = rows[0];
+    if (row.used_at) return res.status(400).json({ message: 'This reset link has already been used.' });
+    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ message: 'This reset link has expired. Please request a new one.' });
+
+    const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await pool.query('UPDATE users SET password_hash = ?, must_change_password = 0, failed_login_attempts = 0, locked_until = NULL WHERE id = ?',
+      [hash, row.user_id]);
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?', [row.token_id]);
+
+    await recordAudit(req, {
+      action: 'UPDATE', entityType: 'user', entityId: row.user_id,
+      summary: `${row.name} reset their password via emailed link`,
+      institutionId: row.institution_id, actor: { id: row.user_id, name: row.name, role: null }
+    });
+
+    res.json({ message: 'Password updated. You can sign in now.' });
+  } catch (err) {
+    console.error('[resetPassword]', err.message);
+    res.status(500).json({ message: 'Could not reset the password. Please try again.' });
+  }
+};

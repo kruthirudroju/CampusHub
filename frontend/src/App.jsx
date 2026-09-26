@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import InstitutionSelect from './pages/InstitutionSelect';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import StudentDashboard from './pages/StudentDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -13,6 +14,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<InstitutionSelect />} />
         <Route path="/login/:slug" element={<Login />} />
+        <Route path="/reset-password/:slug/:token" element={<ResetPassword />} />
         <Route path="/student" element={
           <ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />
         <Route path="/faculty" element={

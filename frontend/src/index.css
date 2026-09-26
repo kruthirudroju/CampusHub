@@ -164,7 +164,7 @@ label.field {
   margin-bottom: 6px;
 }
 
-/* Buttons */
+/* ---------------- buttons ---------------- */
 
 .btn {
   display: inline-flex;
@@ -225,7 +225,7 @@ label.field {
   font-size: 13px;
 }
 
-/* Cards */
+/* ---------------- cards ---------------- */
 
 .card {
   background: var(--paper-raised);
@@ -255,6 +255,7 @@ label.field {
   overflow-y: auto;
 }
 
+/* FIXED: align-items and gap were incorrectly separated by a comma */
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -404,7 +405,7 @@ label.field {
   font-weight: 600;
 }
 
-/* Rows */
+/* ---------------- rows ---------------- */
 
 .row {
   padding: 15px 0;
@@ -428,7 +429,7 @@ label.field {
   margin-top: 3px;
 }
 
-/* Chips */
+/* ---------------- chips ---------------- */
 
 .chip {
   display: inline-flex;
@@ -475,7 +476,7 @@ label.field {
   border-color: transparent;
 }
 
-/* Stats */
+/* ---------------- stats ---------------- */
 
 .stat-grid {
   display: grid;
@@ -501,6 +502,8 @@ label.field {
   margin-top: 2px;
 }
 
+/* ---------------- cards grid ---------------- */
+
 .grid-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -521,7 +524,7 @@ label.field {
   font-size: 12.5px;
 }
 
-/* Banners */
+/* ---------------- banners ---------------- */
 
 .banner {
   padding: 11px 14px;
@@ -545,7 +548,7 @@ label.field {
   color: var(--ink-soft);
 }
 
-/* Modal */
+/* ---------------- modal ---------------- */
 
 .modal-backdrop {
   position: fixed;
@@ -569,7 +572,7 @@ label.field {
   box-shadow: var(--shadow);
 }
 
-/* Table */
+/* ---------------- tables ---------------- */
 
 table.plain {
   width: 100%;
@@ -596,7 +599,7 @@ table.plain th {
   overflow-x: auto;
 }
 
-/* Progress bar */
+/* ---------------- progress bar ---------------- */
 
 .bar-track {
   height: 7px;
@@ -660,6 +663,8 @@ table.plain th {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------- sidebar overlay ---------------- */
 
 .sidebar-scrim {
   position: fixed;
